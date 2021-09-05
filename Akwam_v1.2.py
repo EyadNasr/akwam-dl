@@ -121,14 +121,16 @@ def getlinks(url, stwith):
     tags = soup('a')
     #lst = [tag.get('href', '') for tag in tags if match(stwith, tag.get('href', ''))]
     lst = []
+    epidic = {}
     for tag in tags:
         if match(stwith, tag.get('href', '')) and tag.get('class') == ['text-white']:
             lst = lst + [tag.get('href', '')]
             #print(tag.contents)
-
+            epidic[int(findall('الحلقة ([0-9]+)', tag.contents[0])[0])] = tag.get('href', '')
+    #print(epidic)
     #newlst = [item for item in lst if lst.count(item) == 2]
     #newlst = newlst[::-2]
-    return(sorted(lst))
+    return(epidic)
 
 
 def getlistOfSeasons(parent, findit, fff, episodesFlag):
@@ -182,7 +184,7 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
             uniq = findall(aka, all_X)
             try: 
                 if len(uniq) > 0: 
-                    extracted_websub = findall('(https://.+?)/', uniq[0][0])[0]
+                    extracted_websub = findall('(https://.+?)/[^ \t\n\r\f\v]+', uniq[0][0])[0]
                     #uniq.remove(parent)
             except: 
                 pass
@@ -192,7 +194,7 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
             for i in range(0, len(uniq)): dicto[unsrt[i]] = uniq[i][0] + ' ' + uniq[i][2]
         else:
             uniq = findall(findit, x)
-            extracted_websub = findall('(https://.*?akwam.+?)/', uniq[0])[0]
+            extracted_websub = findall('(https://.*?akwam.+?)/[^ \t\n\r\f\v]+', uniq[0])[0]
             uniq = unique(uniq).tolist()
             unsrt = [int(i.split('/')[-2]) for i in uniq]
             dicto = {}
@@ -210,15 +212,17 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
         s = str(dicto[j].encode())
         links = []
         TYPE = '" [' + bidi_text.split('/')[-3] + ']'
-        print('\n', count, 'Do you want to download "' + bidi_text.split('/')[-1].replace('-', ' ') + TYPE + ' ?')
+        print('\n', count, 'Do you want to download "' + bidi_text.split('/')[-1].replace('-s-', "'s ").replace('-', ' ') + TYPE + ' ?')
         flag = True
         ending = getch()
         if ending == b'y':
             if bidi_text.find('series') != -1:
-                if fff: links = getlinks(findall("'(.+)'", s)[0][:-5], extracted_websub + '/episode/')
-                else: links = getlinks(findall("'(.+)'", s)[0], extracted_websub + '/episode/')
+                if fff: linksdic = getlinks(findall("'(.+)'", s)[0][:-5], extracted_websub + '/episode/')
+                else: linksdic = getlinks(findall("'(.+)'", s)[0], extracted_websub + '/episode/')
+                episodessorted = sorted(linksdic)
+                links = [linksdic[i] for i in episodessorted]
                 if episodesFlag:
-                    print('\n' + '"' + bidi_text.split('/')[-1].replace('-', ' ') + '" has', len(links), 'episodes.')
+                    print('\n' + '"' + bidi_text.split('/')[-1].replace('-', ' ') + '" has', max(episodessorted), 'episodes.')
                     episodeslst = input('Enter the desired episodes: ')
                     cond = 0
                     numset = '0123456789:,'
@@ -226,8 +230,8 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
                         episodeslst = episodeslst.replace(' ', '').replace('\t', '').split(',')
                         for e in episodeslst:
                             #if all(x in numset for x in episodeslst): pass
-                            if len(findall('^[1-9]+[0]*$', e)) > 0 and int(e) <= len(links): pass
-                            elif len(findall('^[1-9]+[0]*:[1-9]+[0]*$', e)) > 0 and int(e.split(':')[0]) < int(e.split(':')[1]) and int(e.split(':')[1]) <=len(links): pass
+                            if len(findall('^[1-9]+[0]*$', e)) > 0 and int(e) <= max(episodessorted): pass
+                            elif len(findall('^[1-9]+[0]*:[1-9]+[0]*$', e)) > 0 and int(e.split(':')[0]) < int(e.split(':')[1]) and int(e.split(':')[1]) <=max(episodessorted): pass
                             else:
                                 episodeslst = input('Invalid input, Enter the desired episodes: ')
                                 cond = cond + 1
@@ -238,9 +242,16 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
                     for i in episodeslst:
                         if ':' not in i: candlist.append(int(i))
                         else: candlist = candlist + list(range(int(i.split(':')[0]), int(i.split(':')[1])+1))
-                    pro = unique(candlist).tolist()
-                    links = [links[i-1] for i in pro]
-
+                    pro = sorted(unique(candlist).tolist())
+                    links = []
+                    missing = []
+                    for i in pro:
+                        if i not in linksdic: missing = missing + [i]
+                        else: links = links + [linksdic[i]]
+                    if len(missing) > 0:
+                        print('\nThe following episodes are missing from the website: ', end='')
+                        for q in missing: print(q, '', end='')
+                        print('')
             elif bidi_text.find('movie') != -1:
                 if fff: links = [bidi_text[:-5]]
                 else: links = [bidi_text]
@@ -430,8 +441,16 @@ def main():
                     else:
                         print("Overwritten")
                 with open(directory, 'wb') as fhand:
+                    tots = '""" Total Size is ' + str(round(total, 5)) + ' GB """'
+                    tExt = tots.center(len(max(sizesorted, key=len))) + '\n\n'
+                    fhand.write(tExt.encode("utf-8"))
                     for i in range(0, len(sizesorted)):
                         row = sizesorted[i]
+                        fhand.write(row.encode("utf8"))
+                    texT = '\n\n\n' + '"""Download Links with no sizes (for jdownloader batch download)"""'.center(len(max(sizesorted, key=len).split('   ')[0])) + '\n\n\n'
+                    fhand.write(texT.encode("utf8"))
+                    for i in range(0, len(sizesorted)):
+                        row = sizesorted[i].split('   ')[0]+'\n'
                         fhand.write(row.encode("utf8"))
                 printtext = '\nOpen the text file that contains the download links "' + directory.split('\\')[-1] + '"? Press [y] for "yes" or [n] for "no" '
                 reshaped_text = reshape(printtext)
