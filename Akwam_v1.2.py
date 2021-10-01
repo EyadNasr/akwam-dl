@@ -44,7 +44,7 @@ def maximize_console(lines=None):
         if lines is None:
             lines = max_size.Y
         else:
-            lines = max(min(lines, 9999), max_size.Y)
+            lines = max(min(lines, 999), max_size.Y)
         subprocess.check_call('mode.com con cols={} lines={}'.format(
                                 cols, lines))
         user32.ShowWindow(hWnd, SW_MAXIMIZE)
@@ -336,7 +336,8 @@ def main():
                         except Exception: iternum = retrynow(iternum)
                         iternum = iternum + 1
                     #downlink1 = findall('"(http://go.akwam' + websuper + '/link/.+?)".+?([0-9.,]+ [MG]B)', z)
-                    downlink1 = findall('data-quality="([1-5])">.+?"(http://re.two.re/link/.+?)".+?([0-9.,]+ [MG]B)', z, DOTALL)
+                    #downlink1 = findall('data-quality="([1-5])">.+?"(http://re.two.re/link/.+?)".+?([0-9.,]+ [MG]B)', z, DOTALL)
+                    downlink1 = findall('data-quality="([1-5])">.+?<a href="(http://[^" \t\n\r\f\v]+/link/[^" \t\n\r\f\v]+?)".+?([0-9.,]+ [MG]B)</span>', z, DOTALL)
                     #downlink1 = findall('"(' + websub + '/download/.+?)".+?([0-9.,]+ [MG]B)', z)
                     tempo = ''
                     for (u, m, k) in downlink1:
@@ -351,8 +352,8 @@ def main():
                             except KeyboardInterrupt: keyinter()
                             except Exception: iternum = retrynow(iternum)
                             iternum = iternum + 1
-                        #print('test', zz)
-                        downlink2 = findall('"(https://akwam.cc/download/.+?)"', zz)
+                        downlink2 = findall('"(https://[^" \t\n\r\f\v]*?akwam[^" \t\n\r\f\v]+?/download/.+?)"', zz)
+                        if len(downlink2) > 1: downlink2 = [downlink2[0]]
                         sizes.append(k)
                         quals.append(u)
                         for ii in downlink2: allLinks1.append(ii)
@@ -360,19 +361,43 @@ def main():
                 print('\n')
                 allLinks2 = []
                 avail_quals = unique(quals).tolist()
-                
+                avail_quals.sort()
                 print('Available Qualities are: ', end='')
                 for i in avail_quals: print(quals_dict[i], end=' ')
+                quals_real = [quals_dict[i] for i in sorted(avail_quals)][::-1]
                 if len(avail_quals) != 1:
-                    Qual = input('\nChoose the desired quality (or press Enter for all qualities): ')
+                    print('\nChoose the desired quality (or press Enter for all qualities): ')
+                    nummm = 1
+                    numlist = []
+                    quals_real_dic = {}
+                    for i in quals_real:
+                        print('Press [' + str(nummm) + '] for', i + 'p')
+                        numlist = numlist + [str(nummm)]
+                        quals_real_dic[str(nummm)] = i
+                        nummm = nummm + 1
+                        if i == quals_real[-1]: print('')
+                    Qual = getch()
+                    while True:
+                        try: Qual = Qual.decode()
+                        except:
+                            print('Invalid input! Choose the desired quality (or press Enter for all qualities): ')
+                            Qual = getch()
+                            continue
+                        if Qual in numlist or Qual == '\r': break
+                        elif Qual.encode() == b'\x03': keyinter()
+                        else: 
+                            print('Invalid input! Choose the desired quality (or press Enter for all qualities): ')
+                            Qual = getch()
+                    if Qual in quals_dict: Qual = quals_real_dic[Qual]
                 else:
                     Qual = quals_dict[avail_quals[0]]
-                    print('\n' + Qual + 'p is chosen')
+                if Qual == '\r': print('All available qualities are added!')
+                else: print('\n' + Qual + 'p is chosen')
                 print('')
                 chosensizes = []
                 savedsizes = sizes
                 for URL,size, qual in zip(allLinks1, sizes, quals):
-                    if len(Qual) == 0: pass
+                    if Qual == '\r': pass
                     elif qual != quals_dict_rev[Qual]: continue
                     chosensizes = chosensizes + [size]
                     iternum = 1
@@ -441,7 +466,7 @@ def main():
                     else:
                         print("Overwritten")
                 with open(directory, 'wb') as fhand:
-                    tots = '""" Total Size is ' + str(round(total, 5)) + ' GB """'
+                    tots = '""" Total Size is ' + str(round(total, 3)) + ' GB """'
                     tExt = tots.center(len(max(sizesorted, key=len))) + '\n\n'
                     fhand.write(tExt.encode("utf-8"))
                     for i in range(0, len(sizesorted)):
@@ -449,9 +474,14 @@ def main():
                         fhand.write(row.encode("utf8"))
                     texT = '\n\n\n' + '"""Download Links with no sizes (for jdownloader batch download)"""'.center(len(max(sizesorted, key=len).split('   ')[0])) + '\n\n\n'
                     fhand.write(texT.encode("utf8"))
+                    copyall = ''
                     for i in range(0, len(sizesorted)):
+                        copyall = copyall + row
                         row = sizesorted[i].split('   ')[0]+'\n'
                         fhand.write(row.encode("utf8"))
+                    from pyperclip import copy
+                    copy(copyall)
+                    print('\nAll Download links copied to clipboard!')
                 printtext = '\nOpen the text file that contains the download links "' + directory.split('\\')[-1] + '"? Press [y] for "yes" or [n] for "no" '
                 reshaped_text = reshape(printtext)
                 bidi_text = get_display(reshaped_text)
@@ -475,5 +505,5 @@ def main():
 
 
 consolefont()
-maximize_console()
+#maximize_console()
 main()
