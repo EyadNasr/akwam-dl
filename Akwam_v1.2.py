@@ -126,7 +126,7 @@ def getlinks(url, stwith):
         if match(stwith, tag.get('href', '')) and tag.get('class') == ['text-white']:
             lst = lst + [tag.get('href', '')]
             #print(tag.contents)
-            epidic[int(findall('...... ([0-9]+)', tag.contents[0])[0])] = tag.get('href', '')
+            epidic[int(findall('.+? ([0-9]+)', tag.contents[0])[0])] = tag.get('href', '')
     #print(epidic)
     #newlst = [item for item in lst if lst.count(item) == 2]
     #newlst = newlst[::-2]
