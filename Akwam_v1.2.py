@@ -133,7 +133,7 @@ def getlinks(url, stwith):
     return(epidic)
 
 
-def getlistOfSeasons(parent, findit, fff, episodesFlag):
+def getlistOfSeasons(parent, findit, isSearch, episodesFlag):
     if findit == '"(https://.*?akwam.+?/(movie|series)/.+?)"':
         findit1 = '"(https://.*?akwam.+?/series/.+?)"'
         findit2 = '"(https://.*?akwam.+?/movie/.+?)"'
@@ -159,7 +159,7 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
             except KeyboardInterrupt: keyinter()
             except Exception: iternum = retrynow(iternum)
             iternum = iternum + 1
-        if fff:
+        if isSearch:
             morePages = findall('page=([1-9]+)', x)
             Pages = unique(morePages).tolist()
             Pages = [1] + [int(i) for i in Pages]
@@ -180,7 +180,7 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
                         except Exception: iternum = retrynow(iternum)
                         iternum = iternum + 1
                     all_X = all_X + ' ' + x
-            aka = r'<h3 class="entry-title font-size-14 m-0"><a href="(https://.*?akwam.+?/(movie|series)/[^" \t\n\r\f\v]+)".+\n.+\n.+"badge badge-pill badge-secondary ml-1">([0-9][0-9][0-9][0-9])</span>'
+            aka = r'<h3 class="entry-title font-size-14 m-0"><a href="(https://.*?akwam.+?/(movie|series)/[^" \t\n\r\f\v]+)"[^\n]+\n[^\n]+\n[^\n]+"badge badge-pill badge-secondary ml-1">([0-9][0-9][0-9][0-9])</span>'
             uniq = findall(aka, all_X)
             try: 
                 if len(uniq) > 0: 
@@ -217,7 +217,7 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
         ending = getch()
         if ending == b'y':
             if bidi_text.find('series') != -1:
-                if fff: linksdic = getlinks(findall("'(.+)'", s)[0][:-5], extracted_websub + '/episode/')
+                if isSearch: linksdic = getlinks(findall("'(.+)'", s)[0][:-5], extracted_websub + '/episode/')
                 else: linksdic = getlinks(findall("'(.+)'", s)[0], extracted_websub + '/episode/')
                 episodessorted = sorted(linksdic)
                 links = [linksdic[i] for i in episodessorted]
@@ -253,7 +253,7 @@ def getlistOfSeasons(parent, findit, fff, episodesFlag):
                         for q in missing: print(q, '', end='')
                         print('')
             elif bidi_text.find('movie') != -1:
-                if fff: links = [bidi_text[:-5]]
+                if isSearch: links = [bidi_text[:-5]]
                 else: links = [bidi_text]
         lsts = lsts + links
         if ending == b'q':
@@ -285,12 +285,12 @@ def main():
             if parent.find('https:') == -1:
                 parent = 'https://akwam.cc/search?q=' + parent
             if parent.find('series') != -1:
-                fff = False
+                isSearch = False
                 print("\nPress [q] to end questions, [y] to download or [n] to skip:")
                 websub1 = 'https://' + parent[8:].split('/')[0]
-                links = getlistOfSeasons(parent, '"(' + websub1 + '/series/.+?)"', fff, episodesFlag)
+                links = getlistOfSeasons(parent, '"(' + websub1 + '/series/.+?)"', isSearch, episodesFlag)
             elif parent.find('search') != -1:
-                fff = True
+                isSearch = True
                 print('\nIs it a Movie or a Series or both?\n(Press [m] for Movie, [s] for Series , [e] for specific Episodes of a series or any other key for both Movies and Series)\n')
                 ending = getch()
                 print(ending.decode('utf-8'), 'is pressed', end = '')
@@ -310,7 +310,7 @@ def main():
                 if episodesFlag: print(', to specify episodes: type the range of episodes or episode numbers separated by commas\nfor example: 1,4,7,9:12,15')
                 else: print('')
                 print("\nPress [q] to end questions, [y] to download or [n] to skip:")
-                links = getlistOfSeasons(parent+Typo, '"(' + websub + '/' + Type[9:] + '/.+?)"', fff, episodesFlag)
+                links = getlistOfSeasons(parent.replace(' ', '+')+Typo, '"(' + websub + '/' + Type[9:] + '/.+?)"', isSearch, episodesFlag)
                 name = parent.split('/')[-1].split('%')[0].replace('-', ' ').split('&')[0].split('?q=')[1].replace('+', ' ')
                 if len(links) == 0 and not flag:
                     print('\nDid not find what you were searching for!')
@@ -400,6 +400,7 @@ def main():
                     if Qual == '\r': pass
                     elif qual != quals_dict_rev[Qual]: continue
                     chosensizes = chosensizes + [size]
+                    #print(URL)
                     iternum = 1
                     while True:
                         try:
