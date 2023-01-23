@@ -3,7 +3,9 @@
 <br>Get any movie or series download links from Akwam website
 <br>You will need bs4 and bidi:
 <br>    pip install python-bidi
-<br>    pip install pip install beautifulsoup4
+<br>    pip install bs4
+<br>    pip install numpy
+<br>    pip install pyperclip
 
 
 
